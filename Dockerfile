@@ -43,6 +43,8 @@ COPY --from=build-doom /usr/local/games/psdoom /build/usr/local/games
 
 FROM ubuntu:22.04
 ARG VNCPASSWORD=idbehold
+ENV APP_ROOT=/opt/app-root \
+  HOME=/opt/app-root/src
 RUN apt-get update && apt-get install -y \
   -o APT::Install-Suggests=0 \
   --no-install-recommends \
@@ -51,8 +53,12 @@ RUN apt-get update && apt-get install -y \
   x11vnc \
   xvfb \
   netcat-openbsd \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p ${HOME} \
+  && useradd -u 1001 -r -g 0 -d ${HOME} -c "Default Application User" default \
+  && chown -R 1001:0 ${APP_ROOT}
 RUN mkdir /root/.vnc && x11vnc -storepasswd "${VNCPASSWORD}" /root/.vnc/passwd
 COPY --from=build-converge /build /
-WORKDIR /root
+WORKDIR ${HOME}
+USER 1001
 ENTRYPOINT ["/usr/bin/kubedoom"]
